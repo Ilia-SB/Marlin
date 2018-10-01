@@ -2389,7 +2389,7 @@ void clean_up_after_endstop_or_probe_move() {
         } else {
           #if ENABLED(DEBUG_LEVELING_FEATURE)
             if (DEBUGGING(LEVELING)) {
-              if (r > 12) {
+              if (r > 1) {
                 SERIAL_ECHOLNPGM("Multiple probing range exceeds alowed margin. Retrying.");
               } else {
                 SERIAL_ECHOLNPGM("Multiple probing range exceeds alowed margin but MULTIPLE_PROBING_MAX_RETRIES reached. Returning probed value.");
