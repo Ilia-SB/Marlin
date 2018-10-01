@@ -2351,6 +2351,11 @@ void clean_up_after_endstop_or_probe_move() {
 
     #if MULTIPLE_PROBING > 2
       float probes_total = 0;
+      #if ENABLED(MULTIPLE_PROBING_FOOLPROOF)
+        for (uint8_t r = MULTIPLE_PROBING_MAX_RETRIES + 1; --r;) {
+          float probed_min = 0, probed_max = 0;
+          probes_total = 0;
+      #endif
       for (uint8_t p = MULTIPLE_PROBING + 1; --p;) {
     #endif
 
@@ -2366,12 +2371,39 @@ void clean_up_after_endstop_or_probe_move() {
         }
 
     #if MULTIPLE_PROBING > 2
+      #if ENABLED(MULTIPLE_PROBING_FOOLPROOF)
+        NOLESS(probed_min, current_position[Z_AXIS]);
+        NOMORE(probed_max, current_position[Z_AXIS]);
+      #endif
         probes_total += current_position[Z_AXIS];
         if (p > 1) do_blocking_move_to_z(current_position[Z_AXIS] + Z_CLEARANCE_MULTI_PROBE, MMM_TO_MMS(Z_PROBE_SPEED_FAST));
       }
+      #if ENABLED(MULTIPLE_PROBING_FOOLPROOF)
+        if (probed_max - probed_min <= MULTIPLE_PROBING_ERROR_MARGIN) {
+          #if ENABLED(DEBUG_LEVELING_FEATURE)
+            if (DEBUGGING(LEVELING)) {
+              SERIAL_ECHOLNPGM("Multiple probing range within allowed margin. Returning probed value.");
+            }
+          #endif
+          break;
+        } else {
+          #if ENABLED(DEBUG_LEVELING_FEATURE)
+            if (DEBUGGING(LEVELING)) {
+              if (r > 12) {
+                SERIAL_ECHOLNPGM("Multiple probing range exceeds alowed margin. Retrying.");
+              } else {
+                SERIAL_ECHOLNPGM("Multiple probing range exceeds alowed margin but MULTIPLE_PROBING_MAX_RETRIES reached. Returning probed value.");
+              }
+            }
+          #endif
+        }
+      #endif
     #endif
 
     #if MULTIPLE_PROBING > 2
+      #if ENABLED(MULTIPLE_PROBING_FOOLPROOF)
+        } //end r loop
+      #endif
 
       // Return the average value of all probes
       const float measured_z = probes_total * (1.0f / (MULTIPLE_PROBING));

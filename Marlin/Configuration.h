@@ -796,6 +796,11 @@
 //   Set to 2 for a fast/slow probe, using the second probe result.
 //   Set to 3 or more for slow probes, averaging the results.
 //#define MULTIPLE_PROBING 2
+#define MULTIPLE_PROBING_FOOLPROOF
+#if ENABLED (MULTIPLE_PROBING_FOOLPROOF)
+	#define MULTIPLE_PROBING_ERROR_MARGIN 0.001
+	#define MULTIPLE_PROBING_MAX_RETRIES 3
+#endif
 
 /**
  * Z probes require clearance when deploying, stowing, and moving between
