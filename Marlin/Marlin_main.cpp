@@ -2355,6 +2355,12 @@ void clean_up_after_endstop_or_probe_move() {
         for (uint8_t r = MULTIPLE_PROBING_MAX_RETRIES + 1; --r;) {
           float probed_min = 0, probed_max = 0;
           probes_total = 0;
+          #if ENABLED(DEBUG_LEVELING_FEATURE)
+          if (DEBUGGING(LEVELING)) {
+            SERIAL_ECHOPAIR("Foolproof probing. Attempt ", MULTIPLE_PROBING_MAX_RETRIES + 1 - r);
+            SERIAL_ECHOLNPAIR(" of ", MULTIPLE_PROBING_MAX_RETRIES);
+          }
+        #endif
       #endif
       for (uint8_t p = MULTIPLE_PROBING + 1; --p;) {
     #endif
