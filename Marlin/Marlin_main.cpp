@@ -2372,8 +2372,18 @@ void clean_up_after_endstop_or_probe_move() {
 
     #if MULTIPLE_PROBING > 2
       #if ENABLED(MULTIPLE_PROBING_FOOLPROOF)
-        NOLESS(probed_min, current_position[Z_AXIS]);
-        NOMORE(probed_max, current_position[Z_AXIS]);
+        #if ENABLED(DEBUG_LEVELING_FEATURE)
+          if (DEBUGGING(LEVELING)) {
+            SERIAL_ECHOPAIR("Probe ", MULTIPLE_PROBING + 1 - p);
+            SERIAL_ECHOLNPAIR(": ", current_position[Z_AXIS]);
+          }
+        #endif
+        if (p == MULTIPLE_PROBING) {
+          probed_min = probed_max = current_position[Z_AXIS];
+        } else {
+          NOLESS(probed_min, current_position[Z_AXIS]);
+          NOMORE(probed_max, current_position[Z_AXIS]);
+        }
       #endif
         probes_total += current_position[Z_AXIS];
         if (p > 1) do_blocking_move_to_z(current_position[Z_AXIS] + Z_CLEARANCE_MULTI_PROBE, MMM_TO_MMS(Z_PROBE_SPEED_FAST));
@@ -2383,10 +2393,10 @@ void clean_up_after_endstop_or_probe_move() {
           if (DEBUGGING(LEVELING)) {
             SERIAL_ECHOPAIR("Probe min: ", probed_min);
             SERIAL_ECHOPAIR(" Probe max: ", probed_max);
-            SERIAL_ECHOLNPAIR("Range: ", probed_max - probed_min);
+            SERIAL_ECHOLNPAIR(" Range: ", abs(probed_max - probed_min));
           }
         #endif
-        if (probed_max - probed_min <= MULTIPLE_PROBING_ERROR_MARGIN) {
+        if (abs(probed_max - probed_min) <= MULTIPLE_PROBING_ERROR_MARGIN) {
           #if ENABLED(DEBUG_LEVELING_FEATURE)
             if (DEBUGGING(LEVELING)) {
               SERIAL_ECHOLNPGM("Multiple probing range within allowed margin. Returning probed value.");
