@@ -2379,6 +2379,13 @@ void clean_up_after_endstop_or_probe_move() {
         if (p > 1) do_blocking_move_to_z(current_position[Z_AXIS] + Z_CLEARANCE_MULTI_PROBE, MMM_TO_MMS(Z_PROBE_SPEED_FAST));
       }
       #if ENABLED(MULTIPLE_PROBING_FOOLPROOF)
+        #if ENABLED(DEBUG_LEVELING_FEATURE)
+          if (DEBUGGING(LEVELING)) {
+            SERIAL_ECHOPAIR("Probe min: ", probed_min);
+            SERIAL_ECHOPAIR(" Probe max: ", probed_max);
+            SERIAL_ECHOLNPAIR("Range: ", probed_max - probed_min);
+          }
+        #endif
         if (probed_max - probed_min <= MULTIPLE_PROBING_ERROR_MARGIN) {
           #if ENABLED(DEBUG_LEVELING_FEATURE)
             if (DEBUGGING(LEVELING)) {
