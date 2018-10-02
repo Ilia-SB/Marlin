@@ -2348,7 +2348,6 @@ void clean_up_after_endstop_or_probe_move() {
           do_blocking_move_to_z(current_position[Z_AXIS] + Z_CLEARANCE_BETWEEN_PROBES, MMM_TO_MMS(Z_PROBE_SPEED_FAST));
       }
     #endif
-
     #if MULTIPLE_PROBING > 2
       float probes_total = 0;
       #if ENABLED(MULTIPLE_PROBING_FOOLPROOF)
@@ -2356,11 +2355,14 @@ void clean_up_after_endstop_or_probe_move() {
           float probed_min = 0, probed_max = 0;
           probes_total = 0;
           #if ENABLED(DEBUG_LEVELING_FEATURE)
-          if (DEBUGGING(LEVELING)) {
-            SERIAL_ECHOPAIR("Foolproof probing. Attempt ", MULTIPLE_PROBING_MAX_RETRIES + 1 - r);
-            SERIAL_ECHOLNPAIR(" of ", MULTIPLE_PROBING_MAX_RETRIES);
+            if (DEBUGGING(LEVELING)) {
+              SERIAL_ECHOPAIR("Foolproof probing. Attempt ", MULTIPLE_PROBING_MAX_RETRIES + 1 - r);
+              SERIAL_ECHOLNPAIR(" of ", MULTIPLE_PROBING_MAX_RETRIES);
+            }
+          #endif
+          if(r != MULTIPLE_PROBING_MAX_RETRIES) { //we are retrying, need to raise z to make clearance for deploying probe
+            do_blocking_move_to_z(current_position[Z_AXIS] + Z_CLEARANCE_MULTI_PROBE, MMM_TO_MMS(Z_PROBE_SPEED_FAST));
           }
-        #endif
       #endif
       for (uint8_t p = MULTIPLE_PROBING + 1; --p;) {
     #endif
@@ -2387,8 +2389,8 @@ void clean_up_after_endstop_or_probe_move() {
         if (p == MULTIPLE_PROBING) {
           probed_min = probed_max = current_position[Z_AXIS];
         } else {
-          NOLESS(probed_min, current_position[Z_AXIS]);
-          NOMORE(probed_max, current_position[Z_AXIS]);
+          probed_min = MIN(probed_min, current_position[Z_AXIS]);
+          probed_max = MAX(probed_max, current_position[Z_AXIS]);
         }
       #endif
         probes_total += current_position[Z_AXIS];
