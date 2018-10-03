@@ -373,6 +373,10 @@
   float coordinate_system[MAX_COORDINATE_SYSTEMS][XYZ];
 #endif
 
+#if ENABLED(MULTIPLE_PROBING_FOOLPROOF)
+  uint8_t inconsistent_points = 0;
+#endif
+
 bool Running = true;
 
 uint8_t marlin_debug_flags = DEBUG_NONE;
@@ -2412,15 +2416,21 @@ void clean_up_after_endstop_or_probe_move() {
           #endif
           break;
         } else {
-          #if ENABLED(DEBUG_LEVELING_FEATURE)
-            if (DEBUGGING(LEVELING)) {
-              if (r > 1) {
+          if (r > 1) {
+            #if ENABLED(DEBUG_LEVELING_FEATURE)
+              if (DEBUGGING(LEVELING)) {
                 SERIAL_ECHOLNPGM("Multiple probing range exceeds alowed margin. Retrying.");
-              } else {
+              }
+            #endif
+          } else {
+            #if ENABLED(DEBUG_LEVELING_FEATURE)
+              if (DEBUGGING(LEVELING)) {
                 SERIAL_ECHOLNPGM("Multiple probing range exceeds alowed margin but MULTIPLE_PROBING_MAX_RETRIES reached. Returning probed value.");
               }
-            }
-          #endif
+            #endif
+            inconsistent_points++;
+            SERIAL_ECHOLNPGM("Inconsistent point.");
+          }
         }
       #endif
     #endif
@@ -4550,7 +4560,6 @@ void home_all_axes() { gcode_G28(true); }
    *
    */
   inline void gcode_G29() {
-
     static int mbl_probe_index = -1;
     #if HAS_SOFTWARE_ENDSTOPS
       static bool enable_soft_endstops;
@@ -4790,7 +4799,6 @@ void home_all_axes() { gcode_G28(true); }
    *
    */
   inline void gcode_G29() {
-
     #if ENABLED(DEBUG_LEVELING_FEATURE) || ENABLED(PROBE_MANUALLY)
       const bool seenQ = parser.seen('Q');
     #else
@@ -12759,7 +12767,7 @@ void process_parsed_command() {
       #if HAS_LEVELING
         case 29: gcode_G29(); break;                              // G29: Detailed Z probe
       #endif
-
+        
       #if HAS_BED_PROBE
         case 30: gcode_G30(); break;                              // G30: Single Z probe
       #endif
