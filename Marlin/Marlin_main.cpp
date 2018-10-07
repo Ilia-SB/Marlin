@@ -2358,6 +2358,8 @@ void clean_up_after_endstop_or_probe_move() {
         for (uint8_t r = MULTIPLE_PROBING_MAX_RETRIES + 1; --r;) {
           float probed_min = 0, probed_max = 0;
           probes_total = 0;
+          SERIAL_ECHOPAIR("Foolproof probing. Attempt ", MULTIPLE_PROBING_MAX_RETRIES + 1 - r);
+          SERIAL_ECHOLNPAIR(" of ", MULTIPLE_PROBING_MAX_RETRIES);
           #if ENABLED(DEBUG_LEVELING_FEATURE)
             if (DEBUGGING(LEVELING)) {
               SERIAL_ECHOPAIR("Foolproof probing. Attempt ", MULTIPLE_PROBING_MAX_RETRIES + 1 - r);
@@ -2401,6 +2403,9 @@ void clean_up_after_endstop_or_probe_move() {
         if (p > 1) do_blocking_move_to_z(current_position[Z_AXIS] + Z_CLEARANCE_MULTI_PROBE, MMM_TO_MMS(Z_PROBE_SPEED_FAST));
       }
       #if ENABLED(MULTIPLE_PROBING_FOOLPROOF)
+      SERIAL_ECHOPAIR("Probe min: ", probed_min);
+      SERIAL_ECHOPAIR(" Probe max: ", probed_max);
+      SERIAL_ECHOLNPAIR(" Range: ", abs(probed_max - probed_min));
         #if ENABLED(DEBUG_LEVELING_FEATURE)
           if (DEBUGGING(LEVELING)) {
             SERIAL_ECHOPAIR("Probe min: ", probed_min);
@@ -2409,6 +2414,7 @@ void clean_up_after_endstop_or_probe_move() {
           }
         #endif
         if (abs(probed_max - probed_min) <= MULTIPLE_PROBING_ERROR_MARGIN) {
+          SERIAL_ECHOLNPGM("Multiple probing range within allowed margin. Returning probed value.");
           #if ENABLED(DEBUG_LEVELING_FEATURE)
             if (DEBUGGING(LEVELING)) {
               SERIAL_ECHOLNPGM("Multiple probing range within allowed margin. Returning probed value.");
@@ -2417,19 +2423,21 @@ void clean_up_after_endstop_or_probe_move() {
           break;
         } else {
           if (r > 1) {
+            SERIAL_ECHOLNPGM("Multiple probing range exceeds alowed margin. Retrying.");
             #if ENABLED(DEBUG_LEVELING_FEATURE)
               if (DEBUGGING(LEVELING)) {
                 SERIAL_ECHOLNPGM("Multiple probing range exceeds alowed margin. Retrying.");
               }
             #endif
           } else {
+            SERIAL_ECHOLNPGM("Multiple probing range exceeds alowed margin but MULTIPLE_PROBING_MAX_RETRIES reached. Returning probed value.");
             #if ENABLED(DEBUG_LEVELING_FEATURE)
               if (DEBUGGING(LEVELING)) {
                 SERIAL_ECHOLNPGM("Multiple probing range exceeds alowed margin but MULTIPLE_PROBING_MAX_RETRIES reached. Returning probed value.");
               }
             #endif
             inconsistent_points++;
-            SERIAL_ECHOLNPGM("Inconsistent point.");
+            SERIAL_ECHOPGM("Inconsistent point: ("); SERIAL_ECHO(current_position[X_AXIS]); SERIAL_ECHOPAIR(", ", current_position[Y_AXIS]); SERIAL_ECHOLNPAIR("). Range: ", abs(probed_max - probed_min));
           }
         }
       #endif
