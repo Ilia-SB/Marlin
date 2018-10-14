@@ -770,7 +770,7 @@
  */
 #define X_PROBE_OFFSET_FROM_EXTRUDER 37    // X offset: -left  +right  [of the nozzle]
 #define Y_PROBE_OFFSET_FROM_EXTRUDER 9    // Y offset: -front +behind [the nozzle]
-#define Z_PROBE_OFFSET_FROM_EXTRUDER -0.65 // Z offset: -below +above  [the nozzle]
+#define Z_PROBE_OFFSET_FROM_EXTRUDER -1.35 // Z offset: -below +above  [the nozzle]
 
 // Certain types of probes need to stay away from edges
 #define MIN_PROBE_EDGE 0
@@ -779,10 +779,10 @@
 #define XY_PROBE_SPEED 8000
 
 // Feedrate (mm/m) for the first approach when double-probing (MULTIPLE_PROBING == 2)
-#define Z_PROBE_SPEED_FAST 30 //HOMING_FEEDRATE_Z
+#define Z_PROBE_SPEED_FAST 20 //HOMING_FEEDRATE_Z
 
 // Feedrate (mm/m) for the "accurate" probe of each point
-#define Z_PROBE_SPEED_SLOW 30 //(Z_PROBE_SPEED_FAST / 2)
+#define Z_PROBE_SPEED_SLOW 20 //(Z_PROBE_SPEED_FAST / 2)
 
 // The number of probes to perform at each point.
 //   Set to 2 for a fast/slow probe, using the second probe result.
@@ -790,7 +790,7 @@
 #define MULTIPLE_PROBING 3
 #define MULTIPLE_PROBING_FOOLPROOF
 #if ENABLED(MULTIPLE_PROBING_FOOLPROOF)
-	#define MULTIPLE_PROBING_ERROR_MARGIN 0.03
+	#define MULTIPLE_PROBING_ERROR_MARGIN 0.05
 	#define MULTIPLE_PROBING_MAX_RETRIES 3
 #endif
 
@@ -1059,7 +1059,7 @@
   #define GRID_MAX_POINTS_X 9       // Don't use more than 15 points per axis, implementation limited.
   #define GRID_MAX_POINTS_Y 9
 
-  //#define UBL_MESH_EDIT_MOVES_Z   // Sophisticated users prefer no movement of nozzle
+  #define UBL_MESH_EDIT_MOVES_Z   // Sophisticated users prefer no movement of nozzle
   #define UBL_SAVE_ACTIVE_ON_M500   // Save the currently active mesh in the current slot on M500
 
   #define UBL_Z_RAISE_WHEN_OFF_MESH 2.5   // When the nozzle is off the mesh, this value is used
