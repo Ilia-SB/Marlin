@@ -71,7 +71,7 @@
 #define SERVO1_PIN          6
 #define SERVO2_PIN          5
 #ifndef SERVO3_PIN
-  #define SERVO3_PIN        4
+  #define SERVO3_PIN        -1 //was 4
 #endif
 
 //
@@ -291,7 +291,7 @@
 #endif
 
 #ifndef PS_ON_PIN
-  #define PS_ON_PIN        12
+  #define PS_ON_PIN        4 // was 12
 #endif
 
 #if ENABLED(CASE_LIGHT_ENABLE) && !defined(CASE_LIGHT_PIN) && !defined(SPINDLE_LASER_ENABLE_PIN)
@@ -320,7 +320,7 @@
 #endif
 
 //
-// Průša i3 MK2 Multiplexer Support
+// Prusa i3 MK2 Multiplexer Support
 //
 #ifndef E_MUX0_PIN
   #define E_MUX0_PIN 40   // Z_CS_PIN
@@ -545,10 +545,6 @@
     #elif ENABLED(ZONESTAR_LCD)
 
       #define ADC_KEYPAD_PIN    12
-
-    #elif ENABLED(AZSMZ_12864)
-
-      // Pins only defined for RAMPS_SMART currently
 
     #else
 
