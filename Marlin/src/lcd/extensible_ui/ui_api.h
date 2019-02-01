@@ -45,9 +45,7 @@
 
 #include "../../inc/MarlinConfig.h"
 
-typedef const __FlashStringHelper *progmem_str;
-
-namespace UI {
+namespace ExtUI {
 
   enum axis_t     : uint8_t { X, Y, Z };
   enum extruder_t : uint8_t { E0, E1, E2, E3, E4, E5 };
@@ -62,19 +60,20 @@ namespace UI {
   bool isAxisPositionKnown(const axis_t);
   bool canMove(const axis_t);
   bool canMove(const extruder_t);
-  void enqueueCommands(progmem_str);
+  void enqueueCommands_P(PGM_P const);
 
   /**
    * Getters and setters
    * Should be used by the EXTENSIBLE_UI to query or change Marlin's state.
    */
-  progmem_str getFirmwareName_str();
+  PGM_P getFirmwareName_str();
 
   float getActualTemp_celsius(const heater_t);
   float getActualTemp_celsius(const extruder_t);
   float getTargetTemp_celsius(const heater_t);
   float getTargetTemp_celsius(const extruder_t);
-  float getFan_percent(const fan_t);
+  float getTargetFan_percent(const fan_t);
+  float getActualFan_percent(const fan_t);
   float getAxisPosition_mm(const axis_t);
   float getAxisPosition_mm(const extruder_t);
   float getAxisSteps_per_mm(const axis_t);
@@ -102,7 +101,7 @@ namespace UI {
 
   void setTargetTemp_celsius(const float, const heater_t);
   void setTargetTemp_celsius(const float, const extruder_t);
-  void setFan_percent(const float, const fan_t);
+  void setTargetFan_percent(const float, const fan_t);
   void setAxisPosition_mm(const float, const axis_t);
   void setAxisPosition_mm(const float, const extruder_t);
   void setAxisSteps_per_mm(const float, const axis_t);
@@ -178,7 +177,12 @@ namespace UI {
    * safe_millis must be called at least every 1 sec to guarantee time
    * yield should be called within lengthy loops
    */
-  uint32_t safe_millis();
+  #ifdef __SAM3X8E__
+    uint32_t safe_millis();
+  #else
+    FORCE_INLINE uint32_t safe_millis() { return millis(); } // TODO: Implement for AVR
+  #endif
+
   void delay_us(unsigned long us);
   void delay_ms(unsigned long ms);
   void yield();
@@ -205,14 +209,14 @@ namespace UI {
     public:
       FileList();
       void refresh();
-      bool seek(uint16_t, bool skip_range_check = false);
+      bool seek(const uint16_t, const bool skip_range_check = false);
 
       const char *longFilename();
       const char *shortFilename();
       const char *filename();
       bool isDir();
 
-      void changeDir(const char *dirname);
+      void changeDir(const char * const dirname);
       void upDir();
       bool isAtRootDir();
       uint16_t    count();
@@ -233,9 +237,8 @@ namespace UI {
   void onPrintTimerStarted();
   void onPrintTimerPaused();
   void onPrintTimerStopped();
-  void onFilamentRunout();
-  void onStatusChanged(const char* msg);
-  void onStatusChanged(progmem_str msg);
+  void onFilamentRunout(const extruder_t extruder);
+  void onStatusChanged(const char * const msg);
   void onFactoryReset();
   void onStoreSettings();
   void onLoadSettings();
@@ -257,8 +260,8 @@ namespace UI {
  *   UI_INCREMENT(TargetTemp_celsius, E0)
  *
  */
-#define UI_INCREMENT_BY(method, inc, ...) UI::set ## method(UI::get ## method (__VA_ARGS__) + inc, ##__VA_ARGS__)
-#define UI_DECREMENT_BY(method, inc, ...) UI::set ## method(UI::get ## method (__VA_ARGS__) - inc, ##__VA_ARGS__)
+#define UI_INCREMENT_BY(method, inc, ...) ExtUI::set ## method(ExtUI::get ## method (__VA_ARGS__) + inc, ##__VA_ARGS__)
+#define UI_DECREMENT_BY(method, inc, ...) ExtUI::set ## method(ExtUI::get ## method (__VA_ARGS__) - inc, ##__VA_ARGS__)
 
 #define UI_INCREMENT(method, ...) UI_INCREMENT_BY(method, increment, ##__VA_ARGS__)
 #define UI_DECREMENT(method, ...) UI_DECREMENT_BY(method, increment, ##__VA_ARGS__)

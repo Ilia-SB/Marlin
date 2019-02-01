@@ -232,7 +232,8 @@
           #endif
           break;
         case E_AXIS: {
-          if (get_target_extruder_from_command()) return;
+          const int8_t target_extruder = get_target_extruder_from_command();
+          if (target_extruder < 0) return;
           switch (target_extruder) {
             #if AXIS_HAS_STEALTHCHOP(E0)
               case 0: TMC_SET_PWMTHRS_E(0); break;
@@ -382,55 +383,5 @@
     }
   }
 #endif // USE_SENSORLESS
-
-/**
- * TMC Z axis calibration routine
- */
-#if ENABLED(TMC_Z_CALIBRATION)
-  void GcodeSuite::M915() {
-    const uint16_t _rms = parser.seenval('S') ? parser.value_int() : CALIBRATION_CURRENT,
-                   _z = parser.seenval('Z') ? parser.value_linear_units() : CALIBRATION_EXTRA_HEIGHT;
-
-    if (!TEST(axis_known_position, Z_AXIS)) {
-      SERIAL_ECHOLNPGM("\nPlease home Z axis first");
-      return;
-    }
-
-    #if AXIS_IS_TMC(Z)
-      const uint16_t Z_current_1 = stepperZ.getMilliamps();
-      stepperZ.rms_current(_rms);
-    #endif
-    #if AXIS_IS_TMC(Z2)
-      const uint16_t Z2_current_1 = stepperZ2.getMilliamps();
-      stepperZ2.rms_current(_rms);
-    #endif
-    #if AXIS_IS_TMC(Z3)
-      const uint16_t Z3_current_1 = stepperZ3.getMilliamps();
-      stepperZ3.rms_current(_rms);
-    #endif
-
-    SERIAL_ECHOPAIR("\nCalibration current: Z", _rms);
-
-    soft_endstops_enabled = false;
-
-    do_blocking_move_to_z(Z_MAX_POS+_z);
-
-    #if AXIS_IS_TMC(Z)
-      stepperZ.rms_current(Z_current_1);
-    #endif
-    #if AXIS_IS_TMC(Z2)
-      stepperZ2.rms_current(Z2_current_1);
-    #endif
-    #if AXIS_IS_TMC(Z3)
-      stepperZ3.rms_current(Z3_current_1);
-    #endif
-
-    do_blocking_move_to_z(Z_MAX_POS);
-    soft_endstops_enabled = true;
-
-    SERIAL_ECHOLNPGM("\nHoming Z because we lost steps");
-    enqueue_and_echo_commands_P(PSTR("G28 Z"));
-  }
-#endif
 
 #endif // HAS_TRINAMIC

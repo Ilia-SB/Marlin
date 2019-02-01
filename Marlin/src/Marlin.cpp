@@ -44,6 +44,8 @@
 
 #include "HAL/shared/Delay.h"
 
+#include "module/stepper_indirection.h"
+
 #ifdef ARDUINO
   #include <pins_arduino.h>
 #endif
@@ -158,21 +160,14 @@
   #include "lcd/extensible_ui/ui_api.h"
 #endif
 
+#if HAS_DRIVER(L6470)
+  #include "libs/L6470/L6470_Marlin.h"
+#endif
+
 bool Running = true;
 
 #if ENABLED(TEMPERATURE_UNITS_SUPPORT)
   TempUnit input_temp_units = TEMPUNIT_C;
-#endif
-
-#if FAN_COUNT > 0
-  uint8_t fan_speed[FAN_COUNT] = { 0 };
-  #if ENABLED(EXTRA_FAN_SPEED)
-    uint8_t old_fan_speed[FAN_COUNT], new_fan_speed[FAN_COUNT];
-  #endif
-  #if ENABLED(PROBING_FANS_OFF)
-    bool fans_paused; // = false;
-    uint8_t paused_fan_speed[FAN_COUNT] = { 0 };
-  #endif
 #endif
 
 // For M109 and M190, this flag may be cleared (by M108) to exit the wait loop
@@ -264,8 +259,7 @@ bool pin_is_protected(const pin_t pin) {
 }
 
 void protected_pin_err() {
-  SERIAL_ERROR_START();
-  SERIAL_ERRORLNPGM(MSG_ERR_PROTECTED_PIN);
+  SERIAL_ERROR_MSG(MSG_ERR_PROTECTED_PIN);
 }
 
 void quickstop_stepper() {
@@ -317,6 +311,38 @@ void disable_all_steppers() {
   disable_e_steppers();
 }
 
+#if HAS_ACTION_COMMANDS
+
+  void host_action(const char * const pstr, const bool eol=true) {
+    SERIAL_ECHOPGM("//action:");
+    serialprintPGM(pstr);
+    if (eol) SERIAL_EOL();
+  }
+
+  #ifdef ACTION_ON_KILL
+    void host_action_kill() { host_action(PSTR(ACTION_ON_KILL)); }
+  #endif
+  #ifdef ACTION_ON_PAUSE
+    void host_action_pause() { host_action(PSTR(ACTION_ON_PAUSE)); }
+  #endif
+  #ifdef ACTION_ON_PAUSED
+    void host_action_paused() { host_action(PSTR(ACTION_ON_PAUSED)); }
+  #endif
+  #ifdef ACTION_ON_RESUME
+    void host_action_resume() { host_action(PSTR(ACTION_ON_RESUME)); }
+  #endif
+  #ifdef ACTION_ON_RESUMED
+    void host_action_resumed() { host_action(PSTR(ACTION_ON_RESUMED)); }
+  #endif
+  #ifdef ACTION_ON_CANCEL
+    void host_action_cancel() { host_action(PSTR(ACTION_ON_CANCEL)); }
+  #endif
+  #ifdef ACTION_ON_FILAMENT_RUNOUT
+    void host_action_filament_runout(const bool eol/*=true*/) { host_action(PSTR(ACTION_ON_FILAMENT_RUNOUT), eol); }
+  #endif
+
+#endif // HAS_ACTION_COMMANDS
+
 /**
  * Manage several activities:
  *  - Check for Filament Runout
@@ -353,28 +379,34 @@ void manage_inactivity(const bool ignore_stepper_queue/*=false*/) {
   #endif
 
   if (stepper_inactive_time) {
+    static bool already_shutdown_steppers; // = false
     if (planner.has_blocks_queued())
       gcode.previous_move_ms = ms; // reset_stepper_timeout to keep steppers powered
     else if (MOVE_AWAY_TEST && !ignore_stepper_queue && ELAPSED(ms, gcode.previous_move_ms + stepper_inactive_time)) {
-      #if ENABLED(DISABLE_INACTIVE_X)
-        disable_X();
-      #endif
-      #if ENABLED(DISABLE_INACTIVE_Y)
-        disable_Y();
-      #endif
-      #if ENABLED(DISABLE_INACTIVE_Z)
-        disable_Z();
-      #endif
-      #if ENABLED(DISABLE_INACTIVE_E)
-        disable_e_steppers();
-      #endif
-      #if HAS_LCD_MENU && ENABLED(AUTO_BED_LEVELING_UBL)
-        if (ubl.lcd_map_control) {
-          ubl.lcd_map_control = false;
-          ui.defer_status_screen(false);
-        }
-      #endif
+      if (!already_shutdown_steppers) {
+        already_shutdown_steppers = true;  // L6470 SPI will consume 99% of free time without this
+        #if ENABLED(DISABLE_INACTIVE_X)
+          disable_X();
+        #endif
+        #if ENABLED(DISABLE_INACTIVE_Y)
+          disable_Y();
+        #endif
+        #if ENABLED(DISABLE_INACTIVE_Z)
+          disable_Z();
+        #endif
+        #if ENABLED(DISABLE_INACTIVE_E)
+          disable_e_steppers();
+        #endif
+        #if HAS_LCD_MENU && ENABLED(AUTO_BED_LEVELING_UBL)
+          if (ubl.lcd_map_control) {
+            ubl.lcd_map_control = false;
+            ui.defer_status_screen(false);
+          }
+        #endif
+      }
     }
+    else
+      already_shutdown_steppers = false;
   }
 
   #if PIN_EXISTS(CHDK) // Check if pin should be set to LOW (after M240 set it HIGH)
@@ -400,8 +432,7 @@ void manage_inactivity(const bool ignore_stepper_queue/*=false*/) {
     // KILL the machine
     // ----------------------------------------------------------------
     if (killCount >= KILL_DELAY) {
-      SERIAL_ERROR_START();
-      SERIAL_ERRORLNPGM(MSG_KILL_BUTTON);
+      SERIAL_ERROR_MSG(MSG_KILL_BUTTON);
       kill();
     }
   #endif
@@ -529,6 +560,10 @@ void manage_inactivity(const bool ignore_stepper_queue/*=false*/) {
     monitor_tmc_driver();
   #endif
 
+  #if ENABLED(MONITOR_L6470_DRIVER_STATUS)
+    L6470.monitor_driver();
+  #endif
+
   // Limit check_axes_activity frequency to 10Hz
   static millis_t next_check_axes_ms = 0;
   if (ELAPSED(ms, next_check_axes_ms)) {
@@ -606,8 +641,7 @@ void idle(
 void kill(PGM_P const lcd_msg/*=NULL*/) {
   thermalManager.disable_all_heaters();
 
-  SERIAL_ERROR_START();
-  SERIAL_ERRORLNPGM(MSG_ERR_KILLED);
+  SERIAL_ERROR_MSG(MSG_ERR_KILLED);
 
   #if HAS_SPI_LCD || ENABLED(EXTENSIBLE_UI)
     ui.kill_screen(lcd_msg ? lcd_msg : PSTR(MSG_KILLED));
@@ -616,7 +650,7 @@ void kill(PGM_P const lcd_msg/*=NULL*/) {
   #endif
 
   #ifdef ACTION_ON_KILL
-    SERIAL_ECHOLNPGM("//action:" ACTION_ON_KILL);
+    host_action_kill();
   #endif
 
   minkill();
@@ -658,13 +692,12 @@ void stop() {
   print_job_timer.stop();
 
   #if ENABLED(PROBING_FANS_OFF)
-    if (fans_paused) fans_pause(false); // put things back the way they were
+    if (thermalManager.fans_paused) thermalManager.set_fans_paused(false); // put things back the way they were
   #endif
 
   if (IsRunning()) {
     Stopped_gcode_LastN = gcode_LastN; // Save last g_code for restart
-    SERIAL_ERROR_START();
-    SERIAL_ERRORLNPGM(MSG_ERR_STOPPED);
+    SERIAL_ERROR_MSG(MSG_ERR_STOPPED);
     LCD_MESSAGEPGM(MSG_STOPPED);
     safe_delay(350);       // allow enough time for messages to get out before stopping
     Running = false;
@@ -693,6 +726,10 @@ void setup() {
 
   #ifdef HAL_INIT
     HAL_init();
+  #endif
+
+  #if HAS_DRIVER(L6470)
+    L6470.init();         // setup SPI and then init chips
   #endif
 
   #if ENABLED(MAX7219_DEBUG)
@@ -745,7 +782,7 @@ void setup() {
     #endif
   #endif
 
-  SERIAL_PROTOCOLLNPGM("start");
+  SERIAL_ECHOLNPGM("start");
   SERIAL_ECHO_START();
 
   #if TMC_HAS_SPI
@@ -781,8 +818,7 @@ void setup() {
     SERIAL_ECHOPGM(MSG_CONFIGURATION_VER);
     SERIAL_ECHOPGM(STRING_DISTRIBUTION_DATE);
     SERIAL_ECHOLNPGM(MSG_AUTHOR STRING_CONFIG_H_AUTHOR);
-    SERIAL_ECHO_START();
-    SERIAL_ECHOLNPGM("Compiled: " __DATE__);
+    SERIAL_ECHO_MSG("Compiled: " __DATE__);
   #endif
 
   SERIAL_ECHO_START();
@@ -823,10 +859,6 @@ void setup() {
 
   #if HAS_PHOTOGRAPH
     OUT_WRITE(PHOTOGRAPH_PIN, LOW);
-  #endif
-
-  #if HAS_CASE_LIGHT
-    update_case_light();
   #endif
 
   #if ENABLED(SPINDLE_LASER_ENABLE)
@@ -880,13 +912,11 @@ void setup() {
     leds.setup();
   #endif
 
-  #if ENABLED(RGB_LED) || ENABLED(RGBW_LED)
-    SET_OUTPUT(RGB_LED_R_PIN);
-    SET_OUTPUT(RGB_LED_G_PIN);
-    SET_OUTPUT(RGB_LED_B_PIN);
-    #if ENABLED(RGBW_LED)
-      SET_OUTPUT(RGB_LED_W_PIN);
+  #if HAS_CASE_LIGHT
+    #if DISABLED(CASE_LIGHT_USE_NEOPIXEL)
+      SET_OUTPUT(CASE_LIGHT_PIN);
     #endif
+    update_case_light();
   #endif
 
   #if ENABLED(MK2_MULTIPLEXER)
@@ -924,11 +954,11 @@ void setup() {
   #endif
 
   #if DO_SWITCH_EXTRUDER
-    move_extruder_servo(0);  // Initialize extruder servo
+    move_extruder_servo(0);   // Initialize extruder servo
   #endif
 
   #if ENABLED(SWITCHING_NOZZLE)
-    move_nozzle_servo(0);  // Initialize nozzle servo
+    move_nozzle_servo(0);     // Initialize nozzle servo
   #endif
 
   #if ENABLED(PARKING_EXTRUDER)
@@ -936,11 +966,11 @@ void setup() {
   #endif
 
   #if ENABLED(POWER_LOSS_RECOVERY)
-    check_print_job_recovery();
+    recovery.check();
   #endif
 
-  #if ENABLED(USE_WATCHDOG) // Reinit watchdog after HAL_get_reset_source call
-    watchdog_init();
+  #if ENABLED(USE_WATCHDOG)
+    watchdog_init();          // Reinit watchdog after HAL_get_reset_source call
   #endif
 
   #if ENABLED(EXTERNAL_CLOSED_LOOP_CONTROLLER)
@@ -949,6 +979,10 @@ void setup() {
 
   #if ENABLED(SDSUPPORT) && DISABLED(ULTRA_LCD)
     card.beginautostart();
+  #endif
+
+  #if HAS_TRINAMIC && DISABLED(PS_DEFAULT_OFF)
+    test_tmc_connection(true, true, true, true);
   #endif
 }
 
@@ -967,7 +1001,7 @@ void loop() {
     #if ENABLED(SDSUPPORT)
       card.checkautostart();
 
-      if (card.abort_sd_printing) {
+      if (card.flag.abort_sd_printing) {
         card.stopSDPrint(
           #if SD_RESORT
             true
@@ -977,7 +1011,7 @@ void loop() {
         quickstop_stepper();
         print_job_timer.stop();
         thermalManager.disable_all_heaters();
-        zero_fan_speeds();
+        thermalManager.zero_fan_speeds();
         wait_for_heatup = false;
         #if ENABLED(POWER_LOSS_RECOVERY)
           card.removeJobRecoveryFile();

@@ -26,8 +26,6 @@
  * Conditionals that need to be set before Configuration_adv.h or pins.h
  */
 
-#define LCD_HAS_DIRECTIONAL_BUTTONS (BUTTON_EXISTS(UP) || BUTTON_EXISTS(DWN) || BUTTON_EXISTS(LFT) || BUTTON_EXISTS(RT))
-
 #if ENABLED(CARTESIO_UI)
 
   #define DOGLCD
@@ -49,10 +47,10 @@
   #define ULTIPANEL
 
   // this helps to implement ADC_KEYPAD menus
+  #define REVERSE_MENU_DIRECTION
   #define ENCODER_PULSES_PER_STEP 1
   #define ENCODER_STEPS_PER_MENU_ITEM 1
   #define ENCODER_FEEDRATE_DEADZONE 2
-  #define REVERSE_MENU_DIRECTION
 
 #elif ENABLED(RADDS_DISPLAY)
   #define ULTIPANEL
@@ -211,6 +209,15 @@
    #define NEWPANEL
  #endif
 
+ /**
+  * FSMC/SPI TFT PANELS
+  */
+ #if ENABLED(MKS_ROBIN_TFT)
+   #define ULTRA_LCD
+   #define DOGLCD
+   #define ULTIPANEL
+ #endif
+
 /**
  * I2C PANELS
  */
@@ -290,6 +297,10 @@
 // ---------------------
 // 2 wire Non-latching LCD SR from:
 // https://bitbucket.org/fmalpartida/new-liquidcrystal/wiki/schematics#!shiftregister-connection
+#if ENABLED(FF_INTERFACEBOARD)
+  #define SR_LCD_3W_NL    // Non latching 3 wire shift register
+  #define ULTIPANEL
+#endif
 
 #if ENABLED(SAV_3DLCD)
   #define SR_LCD_2W_NL    // Non latching 2 wire shift register
@@ -306,33 +317,18 @@
 #define HAS_GRAPHICAL_LCD    ENABLED(DOGLCD)
 #define HAS_CHARACTER_LCD   (HAS_SPI_LCD && !HAS_GRAPHICAL_LCD)
 #define HAS_LCD_MENU        (ENABLED(ULTIPANEL) && DISABLED(NO_LCD_MENUS))
-#define HAS_DIGITAL_ENCODER  ENABLED(NEWPANEL)
+
+#define HAS_ADC_BUTTONS     ENABLED(ADC_KEYPAD)
+#define HAS_DIGITAL_BUTTONS (!HAS_ADC_BUTTONS && ENABLED(NEWPANEL))
+#define HAS_SHIFT_ENCODER   (!HAS_ADC_BUTTONS && (ENABLED(REPRAPWORLD_KEYPAD) || (HAS_SPI_LCD && DISABLED(NEWPANEL))))
+#define HAS_ENCODER_WHEEL   (!HAS_ADC_BUTTONS && ENABLED(NEWPANEL))
+
+// I2C buttons must be read in the main thread
+#define HAS_SLOW_BUTTONS (ENABLED(LCD_I2C_VIKI) || ENABLED(LCD_I2C_PANELOLU2))
 
 #if HAS_GRAPHICAL_LCD
-  //
-  // Custom characters from Marlin_symbols.fon which was merged into ISO10646-0-3.bdf
-  // \x00 intentionally skipped to avoid problems in strings
-  //
-  #define LCD_STR_REFRESH     "\x01"
-  #define LCD_STR_FOLDER      "\x02"
-  #define LCD_STR_ARROW_RIGHT "\x03"
-  #define LCD_STR_UPLEVEL     "\x04"
-  #define LCD_STR_CLOCK       "\x05"
-  #define LCD_STR_FEEDRATE    "\x06"
-  #define LCD_STR_BEDTEMP     "\x07"
-  #define LCD_STR_THERMOMETER "\x08"
-  #define LCD_STR_DEGREE      "\x09"
-
-  #define LCD_STR_SPECIAL_MAX '\x09'
-  // Maximum here is 0x1F because 0x20 is ' ' (space) and the normal charsets begin.
-  // Better stay below 0x10 because DISPLAY_CHARSET_HD44780_WESTERN begins here.
-
-  // Symbol characters
-  #define LCD_STR_FILAM_DIA   "\xf8"
-  #define LCD_STR_FILAM_MUL   "\xa4"
-
   /**
-   * Default LCD contrast for dogm-like LCD displays
+   * Default LCD contrast for Graphical LCD displays
    */
   #define HAS_LCD_CONTRAST (                \
        ENABLED(MAKRPANEL)                   \
@@ -353,20 +349,6 @@
       #define DEFAULT_LCD_CONTRAST 32
     #endif
   #endif
-
-#else
-
-  // Custom characters defined in the first 8 characters of the LCD
-  #define LCD_BEDTEMP_CHAR     0x00  // Print only as a char. This will have 'unexpected' results when used in a string!
-  #define LCD_DEGREE_CHAR      0x01
-  #define LCD_STR_THERMOMETER "\x02" // Still used with string concatenation
-  #define LCD_UPLEVEL_CHAR     0x03
-  #define LCD_STR_REFRESH     "\x04"
-  #define LCD_STR_FOLDER      "\x05"
-  #define LCD_FEEDRATE_CHAR    0x06
-  #define LCD_CLOCK_CHAR       0x07
-  #define LCD_STR_ARROW_RIGHT ">"  /* from the default character set */
-
 #endif
 
 // Boot screens
@@ -534,7 +516,7 @@
 
 #define HAS_SOFTWARE_ENDSTOPS (ENABLED(MIN_SOFTWARE_ENDSTOPS) || ENABLED(MAX_SOFTWARE_ENDSTOPS))
 #define HAS_RESUME_CONTINUE (ENABLED(EXTENSIBLE_UI) || ENABLED(NEWPANEL) || ENABLED(EMERGENCY_PARSER))
-#define HAS_COLOR_LEDS (ENABLED(BLINKM) || ENABLED(RGB_LED) || ENABLED(RGBW_LED) || ENABLED(PCA9632) || ENABLED(NEOPIXEL_LED))
+#define HAS_COLOR_LEDS (ENABLED(BLINKM) || ENABLED(RGB_LED) || ENABLED(RGBW_LED) || ENABLED(PCA9632) || ENABLED(PCA9533) || ENABLED(NEOPIXEL_LED))
 #define HAS_LEDS_OFF_FLAG (ENABLED(PRINTER_EVENT_LEDS) && ENABLED(SDSUPPORT) && HAS_RESUME_CONTINUE)
 #define HAS_PRINT_PROGRESS (ENABLED(SDSUPPORT) || ENABLED(LCD_SET_PROGRESS_MANUALLY))
 
@@ -544,3 +526,5 @@
 #define IS_SCARA     (ENABLED(MORGAN_SCARA) || ENABLED(MAKERARM_SCARA))
 #define IS_KINEMATIC (ENABLED(DELTA) || IS_SCARA)
 #define IS_CARTESIAN !IS_KINEMATIC
+
+#define HAS_ACTION_COMMANDS (defined(ACTION_ON_KILL) || defined(ACTION_ON_PAUSE) || defined(ACTION_ON_PAUSED) || defined(ACTION_ON_RESUME) || defined(ACTION_ON_RESUMED) || defined(ACTION_ON_CANCEL) || defined(G29_ACTION_ON_RECOVER) || defined(G29_ACTION_ON_FAILURE) || defined(ACTION_ON_FILAMENT_RUNOUT))

@@ -102,7 +102,7 @@ void MarlinUI::goto_previous_screen() {
 /////////// Common Menu Actions ////////////
 ////////////////////////////////////////////
 
-void menu_item_gcode::action(PGM_P pgcode) { enqueue_and_echo_commands_P(pgcode); }
+void MenuItem_gcode::action(PGM_P pgcode) { enqueue_and_echo_commands_P(pgcode); }
 
 ////////////////////////////////////////////
 /////////// Menu Editing Actions ///////////
@@ -115,22 +115,22 @@ void menu_item_gcode::action(PGM_P pgcode) { enqueue_and_echo_commands_P(pgcode)
  *
  * The prerequisite is that in the header the type was already declared:
  *
- *   DECLARE_MENU_EDIT_TYPE(int16_t, int3, itostr3, 1)
+ *   DECLARE_MENU_EDIT_TYPE(int16_t, int3, i16tostr3, 1)
  *
  * For example, DEFINE_MENU_EDIT_ITEM(int3) expands into these functions:
  *
- *   bool menu_item_int3::_edit();
- *   void menu_item_int3::edit(); // edit int16_t (interactively)
- *   void menu_item_int3::action_setting_edit(PGM_P const pstr, int16_t * const ptr, const int16_t minValue, const int16_t maxValue, const screenFunc_t callback = null, const bool live = false);
+ *   bool MenuItem_int3::_edit();
+ *   void MenuItem_int3::edit(); // edit int16_t (interactively)
+ *   void MenuItem_int3::action_edit(PGM_P const pstr, int16_t * const ptr, const int16_t minValue, const int16_t maxValue, const screenFunc_t callback = null, const bool live = false);
  *
  * You can then use one of the menu macros to present the edit interface:
  *   MENU_ITEM_EDIT(int3, MSG_SPEED, &feedrate_percentage, 10, 999)
  *
  * This expands into a more primitive menu item:
- *   MENU_ITEM_VARIANT(int3, _setting_edit, MSG_SPEED, PSTR(MSG_SPEED), &feedrate_percentage, 10, 999)
+ *   MENU_ITEM_VARIANT(int3, _edit, MSG_SPEED, PSTR(MSG_SPEED), &feedrate_percentage, 10, 999)
  *
  * ...which calls:
- *       menu_item_int3::action_setting_edit(PSTR(MSG_SPEED), &feedrate_percentage, 10, 999)
+ *       MenuItem_int3::action_edit(PSTR(MSG_SPEED), &feedrate_percentage, 10, 999)
  */
 void MenuItemBase::edit(strfunc_t strfunc, loadfunc_t loadfunc) {
   ui.encoder_direction_normal();
@@ -158,21 +158,24 @@ void MenuItemBase::init(PGM_P const el, void * const ev, const int32_t minv, con
   liveEdit = le;
 }
 
-#define DEFINE_MENU_EDIT_ITEM(NAME) template class TMenuItem<NAME ## _item_info>;
+#define DEFINE_MENU_EDIT_ITEM(NAME) template class TMenuItem<MenuItemInfo_##NAME>;
 
-DEFINE_MENU_EDIT_ITEM(int3);
-DEFINE_MENU_EDIT_ITEM(int4);
-DEFINE_MENU_EDIT_ITEM(int8);
-DEFINE_MENU_EDIT_ITEM(float3);
-DEFINE_MENU_EDIT_ITEM(float52);
-DEFINE_MENU_EDIT_ITEM(float43);
-DEFINE_MENU_EDIT_ITEM(float5);
-DEFINE_MENU_EDIT_ITEM(float51);
-DEFINE_MENU_EDIT_ITEM(float52sign);
-DEFINE_MENU_EDIT_ITEM(float62);
-DEFINE_MENU_EDIT_ITEM(long5);
+DEFINE_MENU_EDIT_ITEM(int3);        // 123, -12   right-justified
+DEFINE_MENU_EDIT_ITEM(int4);        // 1234, -123 right-justified
+DEFINE_MENU_EDIT_ITEM(int8);        // 123, -12   right-justified
+DEFINE_MENU_EDIT_ITEM(uint8);       // 123        right-justified
+DEFINE_MENU_EDIT_ITEM(uint16_3);    // 123, -12   right-justified
+DEFINE_MENU_EDIT_ITEM(uint16_4);    // 1234, -123 right-justified
+DEFINE_MENU_EDIT_ITEM(float3);      // 123        right-justified
+DEFINE_MENU_EDIT_ITEM(float52);     // 123.45
+DEFINE_MENU_EDIT_ITEM(float43);     // 1.234
+DEFINE_MENU_EDIT_ITEM(float5);      // 12345      right-justified
+DEFINE_MENU_EDIT_ITEM(float51);     // +1234.5
+DEFINE_MENU_EDIT_ITEM(float52sign); // +123.45
+DEFINE_MENU_EDIT_ITEM(float62);     // 1234.56    right-justified
+DEFINE_MENU_EDIT_ITEM(long5);       // 12345      right-justified
 
-void menu_item_bool::action_setting_edit(PGM_P pstr, bool *ptr, screenFunc_t callback) {
+void MenuItem_bool::action_edit(PGM_P pstr, bool *ptr, screenFunc_t callback) {
   UNUSED(pstr); *ptr ^= true; ui.refresh();
   if (callback) (*callback)();
 }
@@ -243,7 +246,7 @@ void MarlinUI::goto_screen(screenFunc_t screen, const uint32_t encoder/*=0*/) {
       #if ENABLED(AUTO_BED_LEVELING_UBL)
         if (!ubl.lcd_map_control)
       #endif
-          LCD_SET_CHARSET(screen == status_screen ? CHARSET_INFO : CHARSET_MENU);
+          set_custom_characters(screen == status_screen ? CHARSET_INFO : CHARSET_MENU);
     #endif
 
     refresh(LCDVIEW_CALL_REDRAW_NEXT);

@@ -21,7 +21,7 @@
  */
 
 /**
- * ultralcd_impl_DOGM.h
+ * ultralcd_DOGM.h
  */
 
 #include "../../inc/MarlinConfigPre.h"
@@ -117,6 +117,10 @@
   // Connected via motherboard header
   #define U8G_CLASS U8GLIB_SH1106_128X64
   #define U8G_PARAM DOGLCD_SCK, DOGLCD_MOSI, DOGLCD_CS, LCD_PINS_DC, LCD_PINS_RS
+#elif ENABLED(MKS_ROBIN_TFT)
+  // Unspecified 320x240 TFT pre-initialized by built-in bootloader
+  #define U8G_CLASS U8GLIB_TFT_320X240_UPSCALE_FROM_128X64
+  #define U8G_PARAM FSMC_CS_PIN, FSMC_RS_PIN
 #else
   // for regular DOGM128 display with HW-SPI
   //#define U8G_CLASS U8GLIB_DOGM128
@@ -133,8 +137,9 @@
 #endif
 
 // For selective rendering within a Y range
-#define PAGE_UNDER(yb) (u8g.getU8g()->current_page.y0 <= (yb))
-#define PAGE_CONTAINS(ya, yb) (PAGE_UNDER(yb) && u8g.getU8g()->current_page.y1 >= (ya))
+#define PAGE_OVER(ya)         ((ya) <= u8g.getU8g()->current_page.y1) // Does the current page follow a region top?
+#define PAGE_UNDER(yb)        ((yb) >= u8g.getU8g()->current_page.y0) // Does the current page precede a region bottom?
+#define PAGE_CONTAINS(ya, yb) ((yb) >= u8g.getU8g()->current_page.y0 && (ya) <= u8g.getU8g()->current_page.y1) // Do two vertical regions overlap?
 
 // Only Western languages support big / small fonts
 #if DISABLED(DISPLAY_CHARSET_ISO10646_1)
@@ -170,5 +175,6 @@
 #endif
 #define INFO_FONT_DESCENT 2
 #define INFO_FONT_HEIGHT (INFO_FONT_ASCENT + INFO_FONT_DESCENT)
+#define INFO_FONT_WIDTH   6
 
 extern U8G_CLASS u8g;

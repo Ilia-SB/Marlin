@@ -36,10 +36,19 @@
   #include "../../feature/runout.h"
 #endif
 
+#if ENABLED(POWER_LOSS_RECOVERY)
+  #include "../../feature/power_loss_recovery.h"
+#endif
+
+#if HAS_BED_PROBE
+  #include "../../module/probe.h"
+#endif
+
 #define HAS_DEBUG_MENU ENABLED(LCD_PROGRESS_BAR_TEST)
 
 void menu_advanced_settings();
 void menu_delta_calibrate();
+void menu_tmc();
 
 static void lcd_factory_settings() {
   settings.reset();
@@ -48,11 +57,14 @@ static void lcd_factory_settings() {
 
 #if ENABLED(LCD_PROGRESS_BAR_TEST)
 
+  #include "../lcdprint.h"
+
   static void progress_bar_test() {
+    ui.encoder_direction_normal();
     static int8_t bar_percent = 0;
     if (ui.use_click()) {
       ui.goto_previous_screen();
-      LCD_SET_CHARSET(CHARSET_MENU);
+      ui.set_custom_characters(CHARSET_MENU);
       return;
     }
     bar_percent += (int8_t)ui.encoderPosition;
@@ -60,13 +72,13 @@ static void lcd_factory_settings() {
     ui.encoderPosition = 0;
     draw_menu_item_static(0, PSTR(MSG_PROGRESS_BAR_TEST), true, true);
     lcd_moveto((LCD_WIDTH) / 2 - 2, LCD_HEIGHT - 2);
-    lcd_put_u8str(int(bar_percent)); lcd_put_wchar('%');
-    lcd_moveto(0, LCD_HEIGHT - 1); lcd_draw_progress_bar(bar_percent);
+    lcd_put_int(bar_percent); lcd_put_wchar('%');
+    lcd_moveto(0, LCD_HEIGHT - 1); ui.draw_progress_bar(bar_percent);
   }
 
   void _progress_bar_test() {
     ui.goto_screen(progress_bar_test);
-    LCD_SET_CHARSET(CHARSET_INFO);
+    ui.set_custom_characters(CHARSET_INFO);
   }
 
 #endif // LCD_PROGRESS_BAR_TEST
@@ -162,7 +174,7 @@ static void lcd_factory_settings() {
   void menu_case_light() {
     START_MENU();
     MENU_BACK(MSG_MAIN);
-    MENU_ITEM_EDIT_CALLBACK(int8, MSG_CASE_LIGHT_BRIGHTNESS, &case_light_brightness, 0, 255, update_case_light, true);
+    MENU_ITEM_EDIT_CALLBACK(uint8, MSG_CASE_LIGHT_BRIGHTNESS, &case_light_brightness, 0, 255, update_case_light, true);
     MENU_ITEM_EDIT_CALLBACK(bool, MSG_CASE_LIGHT, (bool*)&case_light_on, update_case_light);
     END_MENU();
   }
@@ -210,7 +222,7 @@ static void lcd_factory_settings() {
     dac_driver_getValues();
     START_MENU();
     MENU_BACK(MSG_CONTROL);
-    #define EDIT_DAC_PERCENT(N) MENU_ITEM_EDIT_CALLBACK(int8, MSG_##N " " MSG_DAC_PERCENT, &driverPercent[_AXIS(N)], 0, 100, dac_driver_commit)
+    #define EDIT_DAC_PERCENT(N) MENU_ITEM_EDIT_CALLBACK(uint8, MSG_##N " " MSG_DAC_PERCENT, &driverPercent[_AXIS(N)], 0, 100, dac_driver_commit)
     EDIT_DAC_PERCENT(X);
     EDIT_DAC_PERCENT(Y);
     EDIT_DAC_PERCENT(Z);
@@ -267,7 +279,7 @@ static void lcd_factory_settings() {
     #endif
     START_MENU();
     MENU_BACK(MSG_CONFIGURATION);
-    MENU_ITEM_EDIT(int8, MSG_FAN_SPEED, &ui.preheat_fan_speed[material], 0, 255);
+    MENU_ITEM_EDIT(uint8, MSG_FAN_SPEED, &ui.preheat_fan_speed[material], 0, 255);
     #if HAS_TEMP_HOTEND
       MENU_ITEM_EDIT(int3, MSG_NOZZLE, &ui.preheat_hotend_temp[material], MINTEMP_ALL, MAXTEMP_ALL - 15);
     #endif
@@ -297,6 +309,12 @@ void menu_configuration() {
   #endif
 
   MENU_ITEM(submenu, MSG_ADVANCED_SETTINGS, menu_advanced_settings);
+
+  #if ENABLED(BABYSTEP_ZPROBE_OFFSET)
+    MENU_ITEM(submenu, MSG_ZPROBE_ZOFFSET, lcd_babystep_zoffset);
+  #elif HAS_BED_PROBE
+    MENU_ITEM_EDIT(float52, MSG_ZPROBE_ZOFFSET, &zprobe_zoffset, Z_PROBE_OFFSET_RANGE_MIN, Z_PROBE_OFFSET_RANGE_MAX);
+  #endif
 
   const bool busy = printer_busy();
   if (!busy) {
@@ -346,8 +364,16 @@ void menu_configuration() {
     MENU_ITEM(submenu, MSG_DRIVE_STRENGTH, menu_pwm);
   #endif
 
+  #if HAS_TRINAMIC
+    MENU_ITEM(submenu, MSG_TMC_DRIVERS, menu_tmc);
+  #endif
+
   #if ENABLED(FILAMENT_RUNOUT_SENSOR)
     MENU_ITEM_EDIT_CALLBACK(bool, MSG_RUNOUT_SENSOR_ENABLE, &runout.enabled, runout.reset);
+  #endif
+
+  #if ENABLED(POWER_LOSS_RECOVERY)
+    MENU_ITEM_EDIT_CALLBACK(bool, MSG_OUTAGE_RECOVERY, &recovery.enabled, recovery.changed);
   #endif
 
   #if DISABLED(SLIM_LCD_MENUS)

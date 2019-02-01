@@ -112,7 +112,7 @@ enum ADCSensorState : char {
     Prepare_FILWIDTH,
     Measure_FILWIDTH,
   #endif
-  #if ENABLED(ADC_KEYPAD)
+  #if HAS_ADC_BUTTONS
     Prepare_ADC_KEY,
     Measure_ADC_KEY,
   #endif
@@ -291,7 +291,7 @@ class Temperature {
     #endif
 
   public:
-    #if ENABLED(ADC_KEYPAD)
+    #if HAS_ADC_BUTTONS
       static uint32_t current_ADCKey_raw;
       static uint8_t ADCKey_count;
     #endif
@@ -311,14 +311,79 @@ class Temperature {
     /**
      * Static (class) methods
      */
-    static float analog2temp(const int raw, const uint8_t e);
+    static float analog_to_celsius_hotend(const int raw, const uint8_t e);
 
     #if HAS_HEATED_BED
-      static float analog2tempBed(const int raw);
+      static float analog_to_celsius_bed(const int raw);
     #endif
     #if HAS_TEMP_CHAMBER
-      static float analog2tempChamber(const int raw);
+      static float analog_to_celsiusChamber(const int raw);
     #endif
+
+    #if FAN_COUNT > 0
+
+      static uint8_t fan_speed[FAN_COUNT];
+      #define FANS_LOOP(I) LOOP_L_N(I, FAN_COUNT)
+
+      static void set_fan_speed(const uint8_t target, const uint16_t speed);
+
+      #if ENABLED(PROBING_FANS_OFF)
+        static bool fans_paused;
+        static uint8_t paused_fan_speed[FAN_COUNT];
+      #endif
+
+      static constexpr inline uint8_t fanPercent(const uint8_t speed) { return (int(speed) * 100 + 127) / 255; }
+
+      #if ENABLED(ADAPTIVE_FAN_SLOWING)
+        static uint8_t fan_speed_scaler[FAN_COUNT];
+      #else
+        static constexpr uint8_t fan_speed_scaler[FAN_COUNT] = ARRAY_N(FAN_COUNT, 128, 128, 128, 128, 128, 128);
+      #endif
+
+      static inline uint8_t lcd_fanSpeedActual(const uint8_t target) {
+        return (fan_speed[target] * uint16_t(fan_speed_scaler[target])) >> 7;
+      }
+
+      #if ENABLED(EXTRA_FAN_SPEED)
+        static uint8_t old_fan_speed[FAN_COUNT], new_fan_speed[FAN_COUNT];
+        static void set_temp_fan_speed(const uint8_t fan, const uint16_t tmp_temp);
+      #endif
+
+      #if HAS_LCD_MENU
+
+        static uint8_t lcd_tmpfan_speed[
+          #if ENABLED(SINGLENOZZLE)
+            MAX(EXTRUDERS, FAN_COUNT)
+          #else
+            FAN_COUNT
+          #endif
+        ];
+
+        static inline void lcd_setFanSpeed(const uint8_t target) { set_fan_speed(target, lcd_tmpfan_speed[target]); }
+
+        #if HAS_FAN0
+          FORCE_INLINE static void lcd_setFanSpeed0() { lcd_setFanSpeed(0); }
+        #endif
+        #if HAS_FAN1 || (ENABLED(SINGLENOZZLE) && EXTRUDERS > 1)
+          FORCE_INLINE static void lcd_setFanSpeed1() { lcd_setFanSpeed(1); }
+        #endif
+        #if HAS_FAN2 || (ENABLED(SINGLENOZZLE) && EXTRUDERS > 2)
+          FORCE_INLINE static void lcd_setFanSpeed2() { lcd_setFanSpeed(2); }
+        #endif
+
+      #endif // HAS_LCD_MENU
+
+      #if ENABLED(PROBING_FANS_OFF)
+        void set_fans_paused(const bool p);
+      #endif
+
+    #endif // FAN_COUNT > 0
+
+    static inline void zero_fan_speeds() {
+      #if FAN_COUNT > 0
+        FANS_LOOP(i) fan_speed[i] = 0;
+      #endif
+    }
 
     /**
      * Called from the Temperature ISR
@@ -358,7 +423,7 @@ class Temperature {
     #endif
 
     #if ENABLED(FILAMENT_WIDTH_SENSOR)
-      static float analog2widthFil();         // Convert raw Filament Width to millimeters
+      static float analog_to_mm_fil_width();         // Convert raw Filament Width to millimeters
       static int8_t widthFil_to_size_ratio(); // Convert Filament Width (mm) to an extrusion ratio
     #endif
 
@@ -407,7 +472,7 @@ class Temperature {
       #if ENABLED(AUTO_POWER_CONTROL)
         powerManager.power_on();
       #endif
-      target_temperature[HOTEND_INDEX] = celsius;
+      target_temperature[HOTEND_INDEX] = MIN(celsius, maxttemp[HOTEND_INDEX] - 15);
       #if WATCH_HOTENDS
         start_watching_heater(HOTEND_INDEX);
       #endif
@@ -451,7 +516,7 @@ class Temperature {
         #endif
         target_temperature_bed =
           #ifdef BED_MAXTEMP
-            MIN(celsius, BED_MAXTEMP)
+            MIN(celsius, BED_MAXTEMP - 15)
           #else
             celsius
           #endif
@@ -465,7 +530,7 @@ class Temperature {
         static void start_watching_bed();
       #endif
 
-      static bool wait_for_bed(const bool no_wait_for_cooling
+      static bool wait_for_bed(const bool no_wait_for_cooling=true
         #if G26_CLICK_CAN_CANCEL
           , const bool click_to_cancel=false
         #endif
@@ -601,9 +666,9 @@ class Temperature {
     #endif // HEATER_IDLE_HANDLER
 
     #if HAS_TEMP_SENSOR
-      static void print_heaterstates(
+      static void print_heater_states(const uint8_t target_extruder
         #if NUM_SERIAL > 1
-          const int8_t port = -1
+          , const int8_t port = -1
         #endif
       );
       #if ENABLED(AUTO_REPORT_TEMPERATURES)
@@ -618,7 +683,7 @@ class Temperature {
       #endif
     #endif
 
-    #if ENABLED(ULTRA_LCD)
+    #if ENABLED(ULTRA_LCD) || ENABLED(EXTENSIBLE_UI)
       static void set_heating_message(const uint8_t e);
     #endif
 
@@ -632,8 +697,23 @@ class Temperature {
 
     static void updateTemperaturesFromRawValues();
 
-    #if ENABLED(HEATER_0_USES_MAX6675)
-      static int read_max6675();
+    #define HAS_MAX6675 (ENABLED(HEATER_0_USES_MAX6675) || ENABLED(HEATER_1_USES_MAX6675))
+    #if HAS_MAX6675
+      #if ENABLED(HEATER_0_USES_MAX6675) && ENABLED(HEATER_1_USES_MAX6675)
+        #define COUNT_6675 2
+      #else
+        #define COUNT_6675 1
+      #endif
+      #if COUNT_6675 > 1
+        #define READ_MAX6675(N) read_max6675(N)
+      #else
+        #define READ_MAX6675(N) read_max6675()
+      #endif
+      static int read_max6675(
+        #if COUNT_6675 > 1
+          const uint8_t hindex=0
+        #endif
+      );
     #endif
 
     static void checkExtruderAutoFans();
