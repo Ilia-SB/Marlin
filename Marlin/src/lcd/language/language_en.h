@@ -537,6 +537,9 @@
 #ifndef MSG_BED
   #define MSG_BED                             _UxGT("Bed")
 #endif
+#ifndef MSG_CHAMBER
+  #define MSG_CHAMBER                         _UxGT("Enclosure")
+#endif
 #ifndef MSG_FAN_SPEED
   #define MSG_FAN_SPEED                       _UxGT("Fan speed")
 #endif
@@ -921,6 +924,12 @@
 #ifndef MSG_ERR_MINTEMP_BED
   #define MSG_ERR_MINTEMP_BED                 _UxGT("Err: MINTEMP BED")
 #endif
+#ifndef MSG_ERR_MAXTEMP_CHAMBER
+  #define MSG_ERR_MAXTEMP_CHAMBER             _UxGT("Err: MAXTEMP CHAMBER")
+#endif
+#ifndef MSG_ERR_MINTEMP_CHAMBER
+  #define MSG_ERR_MINTEMP_CHAMBER             _UxGT("Err: MINTEMP CHAMBER")
+#endif
 #ifndef MSG_ERR_Z_HOMING
   #define MSG_ERR_Z_HOMING                    MSG_HOME _UxGT(" ") MSG_X MSG_Y _UxGT(" ") MSG_FIRST
 #endif
@@ -1269,6 +1278,9 @@
     #define MSG_ADVANCED_PAUSE_WAITING_1      _UxGT("Press button")
     #define MSG_ADVANCED_PAUSE_WAITING_2      _UxGT("to resume print")
   #endif
+  #ifndef MSG_PAUSE_PRINT_INIT_1
+    #define MSG_PAUSE_PRINT_INIT_1            _UxGT("Parking...")
+  #endif
   #ifndef MSG_FILAMENT_CHANGE_INIT_1
     #define MSG_FILAMENT_CHANGE_INIT_1        _UxGT("Wait for")
     #define MSG_FILAMENT_CHANGE_INIT_2        _UxGT("filament change")
@@ -1361,4 +1373,7 @@
 
 #ifndef MSG_SERVICE_RESET
   #define MSG_SERVICE_RESET                   _UxGT("Reset")
+#endif
+#ifndef MSG_SERVICE_IN
+  #define MSG_SERVICE_IN                      _UxGT(" in:")
 #endif

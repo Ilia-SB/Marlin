@@ -66,9 +66,9 @@
 
 #elif ENABLED(miniVIKI) || ENABLED(VIKI2) || ENABLED(ELB_FULL_GRAPHIC_CONTROLLER) || ENABLED(AZSMZ_12864)
 
-  #define ULTRA_LCD  //general LCD support, also 16x2
-  #define DOGLCD  // Support for SPI LCD 128x64 (Controller ST7565R graphic Display Family)
-  #define ULTIMAKERCONTROLLER //as available from the Ultimaker online store.
+  #define ULTRA_LCD
+  #define DOGLCD
+  #define ULTIMAKERCONTROLLER
 
   #if ENABLED(miniVIKI)
     #define LCD_CONTRAST_MIN      75
@@ -158,10 +158,11 @@
   #define ENCODER_STEPS_PER_MENU_ITEM 2
 #endif
 
-// Generic support for SSD1306 / SSD1309 / SH1106 OLED based LCDs.
-#if ENABLED(U8GLIB_SSD1306) || ENABLED(U8GLIB_SSD1309) || ENABLED(U8GLIB_SH1106)
-  #define ULTRA_LCD  //general LCD support, also 16x2
-  #define DOGLCD  // Support for I2C LCD 128x64 (Controller SSD1306 / SSD1309 / SH1106 graphic Display Family)
+// 128x64 I2C OLED LCDs - SSD1306/SSD1309/SH1106
+#define HAS_SSD1306_OLED_I2C (ENABLED(U8GLIB_SSD1306) || ENABLED(U8GLIB_SSD1309) || ENABLED(U8GLIB_SH1106))
+#if HAS_SSD1306_OLED_I2C
+  #define ULTRA_LCD
+  #define DOGLCD
 #endif
 
 #if ENABLED(PANEL_ONE) || ENABLED(U8GLIB_SH1106)
@@ -319,12 +320,6 @@
 #define HAS_LCD_MENU        (ENABLED(ULTIPANEL) && DISABLED(NO_LCD_MENUS))
 
 #define HAS_ADC_BUTTONS     ENABLED(ADC_KEYPAD)
-#define HAS_DIGITAL_BUTTONS (!HAS_ADC_BUTTONS && ENABLED(NEWPANEL))
-#define HAS_SHIFT_ENCODER   (!HAS_ADC_BUTTONS && (ENABLED(REPRAPWORLD_KEYPAD) || (HAS_SPI_LCD && DISABLED(NEWPANEL))))
-#define HAS_ENCODER_WHEEL   (!HAS_ADC_BUTTONS && ENABLED(NEWPANEL))
-
-// I2C buttons must be read in the main thread
-#define HAS_SLOW_BUTTONS (ENABLED(LCD_I2C_VIKI) || ENABLED(LCD_I2C_PANELOLU2))
 
 #if HAS_GRAPHICAL_LCD
   /**
@@ -368,6 +363,16 @@
  *  E_MANUAL     - Number of E steppers for LCD move options
  *
  */
+
+#if EXTRUDERS == 0
+  #undef DISTINCT_E_FACTORS
+  #undef SINGLENOZZLE
+  #undef SWITCHING_EXTRUDER
+  #undef SWITCHING_NOZZLE
+  #undef MIXING_EXTRUDER
+  #undef MK2_MULTIPLEXER
+  #undef PRUSA_MMU2
+#endif
 
 #if ENABLED(SWITCHING_EXTRUDER)   // One stepper for every two EXTRUDERS
   #if EXTRUDERS > 4
@@ -430,6 +435,7 @@
 #define SWITCHING_NOZZLE_TWO_SERVOS defined(SWITCHING_NOZZLE_E1_SERVO_NR)
 
 #define HAS_HOTEND_OFFSET (HOTENDS > 1)
+#define HAS_DUPLICATION_MODE (ENABLED(DUAL_X_CARRIAGE) || ENABLED(MULTI_NOZZLE_DUPLICATION))
 
 /**
  * DISTINCT_E_FACTORS affects how some E factors are accessed
@@ -504,6 +510,7 @@
 #define PROBE_SELECTED (HAS_BED_PROBE || ENABLED(PROBE_MANUALLY) || ENABLED(MESH_BED_LEVELING))
 
 #if HAS_BED_PROBE
+  #define USES_Z_MIN_PROBE_ENDSTOP DISABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN)
   #ifndef Z_PROBE_LOW_POINT
     #define Z_PROBE_LOW_POINT -5
   #endif
@@ -513,7 +520,6 @@
 #else
   // Clear probe pin settings when no probe is selected
   #undef Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN
-  #undef Z_MIN_PROBE_ENDSTOP
 #endif
 
 #define HOMING_Z_WITH_PROBE (HAS_BED_PROBE && Z_HOME_DIR < 0 && ENABLED(Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN))

@@ -76,7 +76,7 @@ void GcodeSuite::M600() {
 
   // Show initial "wait for start" message
   #if HAS_LCD_MENU && DISABLED(MMU2_MENUS)
-    lcd_advanced_pause_show_message(ADVANCED_PAUSE_MESSAGE_INIT, ADVANCED_PAUSE_MODE_PAUSE_PRINT, target_extruder);
+    lcd_pause_show_message(PAUSE_MESSAGE_CHANGING, PAUSE_MODE_PAUSE_PRINT, target_extruder);
   #endif
 
   #if ENABLED(HOME_BEFORE_FILAMENT_CHANGE)
@@ -110,8 +110,8 @@ void GcodeSuite::M600() {
   if (parser.seenval('Y')) park_point.y = parser.linearval('Y');
 
   #if HAS_HOTEND_OFFSET && DISABLED(DUAL_X_CARRIAGE) && DISABLED(DELTA)
-    park_point.x += (active_extruder ? hotend_offset[X_AXIS][active_extruder] : 0);
-    park_point.y += (active_extruder ? hotend_offset[Y_AXIS][active_extruder] : 0);
+    park_point.x += hotend_offset[X_AXIS][active_extruder];
+    park_point.y += hotend_offset[Y_AXIS][active_extruder];
   #endif
 
   #if ENABLED(MMU2_MENUS)
