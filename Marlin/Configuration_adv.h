@@ -1495,9 +1495,9 @@
    * but you can override or define them here.
    */
   #define TMC_USE_SW_SPI
-  #define TMC_SW_MOSI       P0_18
-  #define TMC_SW_MISO       P0_17
-  #define TMC_SW_SCK        P0_15
+  //#define TMC_SW_MOSI       P0_18
+  //#define TMC_SW_MISO       P0_17
+  //#define TMC_SW_SCK        P0_15
 
   /**
    * Software enable
