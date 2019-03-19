@@ -1420,7 +1420,7 @@
 // @section tmc_smart
 
 /**
- * To use TMC2130, TMC2160, TMC2660, TMC5130, TMC5160 stepper drivers in SPI mode
+ * To use TMC, TMC2160, TMC2660, TMC5130, TMC5160 stepper drivers in SPI mode
  * connect your SPI pins to the hardware SPI interface on your board and define
  * the required CS pins in your `pins_MYBOARD.h` file. (e.g., RAMPS 1.4 uses AUX3
  * pins `X_CS_PIN 53`, `Y_CS_PIN 49`, etc.).
@@ -1646,8 +1646,8 @@
   //#define SENSORLESS_PROBING // TMC2130 only
 
   #if ENABLED(SENSORLESS_HOMING) || ENABLED(SENSORLESS_PROBING)
-    #define X_STALL_SENSITIVITY  4
-    #define Y_STALL_SENSITIVITY  5
+    #define X_STALL_SENSITIVITY  3
+    #define Y_STALL_SENSITIVITY  4
     //#define Z_STALL_SENSITIVITY  8
   #endif
 

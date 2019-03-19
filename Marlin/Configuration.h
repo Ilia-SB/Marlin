@@ -295,7 +295,7 @@
  *
  * :{ 0:'No power switch', 1:'ATX', 2:'X-Box 360' }
  */
-#define POWER_SUPPLY 2
+#define POWER_SUPPLY 1
 
 #if POWER_SUPPLY > 0
   // Enable this option to leave the PSU off at startup.
@@ -978,8 +978,8 @@
 // @section machine
 
 // The size of the print bed
-#define X_BED_SIZE 260
-#define Y_BED_SIZE 260
+#define X_BED_SIZE 250
+#define Y_BED_SIZE 250
 
 // Travel limits (mm) after homing, corresponding to endstop positions.
 #define X_MIN_POS 0
@@ -1205,9 +1205,9 @@
 #if ENABLED(AUTO_BED_LEVELING_3POINT) || ENABLED(AUTO_BED_LEVELING_UBL)
   #define PROBE_PT_1_X 0
   #define PROBE_PT_1_Y 0
-  #define PROBE_PT_2_X 130
-  #define PROBE_PT_2_Y 260
-  #define PROBE_PT_3_X 260
+  #define PROBE_PT_2_X 125
+  #define PROBE_PT_2_Y 250
+  #define PROBE_PT_3_X 250
   #define PROBE_PT_3_Y 0
 #endif
 
