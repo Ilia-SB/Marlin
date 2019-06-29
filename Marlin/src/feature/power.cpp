@@ -111,7 +111,7 @@ void Power::power_on() {
     PSU_PIN_ON();
 
     #if HAS_TRINAMIC
-      delay(100); // Wait for power to settle
+      delay(200); // Wait for power to settle
       restore_stepper_drivers();
     #endif
   }
