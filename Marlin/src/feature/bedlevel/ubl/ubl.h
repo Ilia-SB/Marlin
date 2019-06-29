@@ -1,9 +1,9 @@
 /**
  * Marlin 3D Printer Firmware
- * Copyright (C) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
+ * Copyright (c) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
  * Based on Sprinter and grbl.
- * Copyright (C) 2011 Camiel Gubbels / Erik van der Zalm
+ * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,14 +38,6 @@
 
 #define USE_NOZZLE_AS_REFERENCE 0
 #define USE_PROBE_AS_REFERENCE 1
-
-// ubl_motion.cpp
-
-#if ENABLED(UBL_DEVEL_DEBUGGING)
-  void debug_current_and_destination(PGM_P const title);
-#else
-  FORCE_INLINE void debug_current_and_destination(PGM_P const title) { UNUSED(title); }
-#endif
 
 // ubl_G29.cpp
 

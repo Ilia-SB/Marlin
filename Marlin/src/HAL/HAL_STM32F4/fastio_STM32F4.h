@@ -1,10 +1,10 @@
 /**
  * Marlin 3D Printer Firmware
- * Copyright (C) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
+ * Copyright (c) 2019 MarlinFirmware [https://github.com/MarlinFirmware/Marlin]
  *
  * Based on Sprinter and grbl.
- * Copyright (C) 2011 Camiel Gubbels / Erik van der Zalm
- * Copyright (C) 2017 Victor Perez
+ * Copyright (c) 2011 Camiel Gubbels / Erik van der Zalm
+ * Copyright (c) 2017 Victor Perez
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,12 +48,10 @@
 
 #define TOGGLE(IO)              OUT_WRITE(IO, !READ(IO))
 
-#define GET_INPUT(IO)
-#define GET_OUTPUT(IO)
-#define GET_TIMER(IO)
+#define IS_INPUT(IO)
+#define IS_OUTPUT(IO)
 
 #define PWM_PIN(P)              true
-#define USEABLE_HARDWARE_PWM(P) PWM_PIN(P)
 
 // digitalRead/Write wrappers
 #define extDigitalRead(IO)    digitalRead(IO)
