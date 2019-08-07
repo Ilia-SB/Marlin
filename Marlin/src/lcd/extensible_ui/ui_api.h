@@ -19,6 +19,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+#pragma once
 
 /************
  * ui_api.h *
@@ -40,8 +41,6 @@
  *   To view a copy of the GNU General Public License, go to the following  *
  *   location: <http://www.gnu.org/licenses/>.                              *
  ****************************************************************************/
-
-#pragma once
 
 #include "../../inc/MarlinConfig.h"
 
@@ -71,7 +70,7 @@ namespace ExtUI {
   bool isMachineHomed(); // Axis position most likely correct, steppers may have deactivated
   bool canMove(const axis_t);
   bool canMove(const extruder_t);
-  void enqueueCommands_P(PGM_P const);
+  void injectCommands_P(PGM_P const);
   bool commandsInQueue();
 
   bool isHeaterIdle(const heater_t);

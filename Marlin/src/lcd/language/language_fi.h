@@ -65,6 +65,7 @@
 #define MSG_MOVE_Y                          _UxGT("Liikuta Y")
 #define MSG_MOVE_Z                          _UxGT("Liikuta Z")
 #define MSG_MOVE_E                          _UxGT("Extruder")
+#define MSG_MOVE_Z_DIST                     _UxGT("Liikuta %smm")
 #define MSG_MOVE_01MM                       _UxGT("Liikuta 0.1mm")
 #define MSG_MOVE_1MM                        _UxGT("Liikuta 1mm")
 #define MSG_MOVE_10MM                       _UxGT("Liikuta 10mm")
