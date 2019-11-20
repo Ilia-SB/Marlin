@@ -228,7 +228,7 @@ G29_TYPE GcodeSuite::G29() {
       ABL_VAR xy_int8_t meshCount;
     #endif
 
-    ABL_VAR xy_int_t probe_position_lf, probe_position_rb;
+    ABL_VAR xy_float_t probe_position_lf, probe_position_rb;
     ABL_VAR xy_float_t gridSpacing = { 0, 0 };
 
     #if ENABLED(AUTO_BED_LEVELING_LINEAR)
@@ -684,7 +684,7 @@ G29_TYPE GcodeSuite::G29() {
       // Outer loop is Y with PROBE_Y_FIRST disabled
       for (PR_OUTER_VAR = 0; PR_OUTER_VAR < PR_OUTER_END && !isnan(measured_z); PR_OUTER_VAR++) {
 
-        int8_t inStart, inStop, inInc;
+        uint8_t inStart, inStop, inInc;
 
         if (zig) { // away from origin
           inStart = 0;
@@ -693,8 +693,8 @@ G29_TYPE GcodeSuite::G29() {
         }
         else {     // towards origin
           inStart = PR_INNER_END - 1;
-          inStop = -1;
-          inInc = -1;
+          inStop = 0xFF;
+          inInc = 0xFF;
         }
 
         zig ^= true; // zag
@@ -746,7 +746,7 @@ G29_TYPE GcodeSuite::G29() {
 
             z_values[meshCount.x][meshCount.y] = measured_z + zoffset;
             #if ENABLED(EXTENSIBLE_UI)
-              ExtUI::onMeshUpdate(meshCount.x, meshCount.y, z_values[meshCount.x][meshCount.y]);
+              ExtUI::onMeshUpdate(meshCount, z_values[meshCount.x][meshCount.y]);
             #endif
 
           #endif
